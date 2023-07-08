@@ -1,0 +1,40 @@
+[
+  {
+    "marketplace": "tokopedia",
+    "itemid": "901523666",
+    "shopid": "1423294",
+    "product_link": "https://www.tokopedia.com/nutriologyindonesia/granola-real-honey-400-gr-nutriology-sereal-makanan-sehat-diet-praktis-apple-cinnamon?extParam=ivf%3Dfalse%26src%3Dsearch",
+    "product_title": "Granola real honey 400 gr nutriology sereal makanan sehat diet praktis",
+    "brand": null,
+    "price": 44790,
+    "rating": 4.9,
+    "historical_sold": "10885",
+    "review_count": "3155",
+    "view_count": "82730",
+    "cat_slug": "Makanan Sehat",
+    "store_type": false,
+    "datescrap": "2023-07-07",
+    "store_name": "Nutriology Indonesia Official",
+    "store_link": "https://www.tokopedia.com/nutriologyindonesia",
+    "store_location": "Surabaya"
+  },
+  {
+    "marketplace": "tokopedia",
+    "itemid": "7465568689",
+    "shopid": "8523500",
+    "product_link": "https://www.tokopedia.com/timurtengahindon/granola-blueberry-500gr-timur-tengah-sereal-makanan-sehat-high-quality-toples-jar?extParam=ivf%3Dfalse%26src%3Dsearch",
+    "product_title": "Granola Blueberry 500gr Timur Tengah Sereal Makanan Sehat High Quality",
+    "brand": null,
+    "price": 52500,
+    "rating": 4.9,
+    "historical_sold": "3698",
+    "review_count": "1646",
+    "view_count": "7635",
+    "cat_slug": "Makanan Sehat",
+    "store_type": true,
+    "datescrap": "2023-07-07",
+    "store_name": "Timur Tengah Indonesia",
+    "store_link": "https://www.tokopedia.com/timurtengahindon",
+    "store_location": "Jakarta Barat"
+  }
+]
