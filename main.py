@@ -6,6 +6,7 @@ from resource.allreq import *
 import concurrent.futures
 import argparse
 from resource.service import *
+import time
 
 webhook_url = "https://discord.com/api/webhooks/1023818941715456035/g1gXRsu-0Oe3W6BVvNWJN3NP5ScHR9FKSAxPSR1Az1RWlJLDSAiFTxhA6DQQrtTtRHbK"
 
@@ -25,20 +26,23 @@ if __name__ == "__main__":
     if args.c == "all":
         for key in byCategory:
             # msg start scraping to webhook
-            content_start = f"start scraping {key} category"
+            content_start = f"Start scraping {key} category"
             send_webhook_message(webhook_url, content_start)
             cat_list = byCategory[key]["lis_category"]
             cat_name = byCategory[key]["cat"]
             datatable = byCategory[key]["datatable"]
+            start_time = time.time()  # Start time
             data = getCat(cat_name, cat_list, datatable)
-            content_start = f"scraping {key} category done total {len(data)} data"
-            send_webhook_message(
-                webhook_url,
-                content_start,
-            )
+            elapsed_time = time.time() - start_time  # Calculate elapsed time
+            content_start = f"Scraping {key} category done total {len(data)} data\nElapsed Time: {elapsed_time} seconds"
+            send_webhook_message(webhook_url, content_start)
 
     if args.k == "all":
         for key in byKeyword:
+            # msg start scraping to webhook
+            content_start = f"Start scraping {key}"
+            send_webhook_message(webhook_url, content_start)
+
             allProduct = []
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 results = executor.map(work, byKeyword[key]["list_keywords"])
@@ -47,9 +51,16 @@ if __name__ == "__main__":
                 ]  # Flatten list of lists
             df = pd.DataFrame(allProduct)
             df.to_csv(f"{key}_data.csv", index=False)
+            elapsed_time = time.time() - start_time  # Calculate elapsed time
+            content_start = f"Execution Time for {key}: {elapsed_time} seconds"
+            send_webhook_message(webhook_url, content_start)
     elif args.k in byKeyword:
+        # msg start scraping to webhook
+        content_start = f"Start scraping {args.k}"
+        send_webhook_message(webhook_url, content_start)
+
         allProduct = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             results = executor.map(
                 work,
                 byKeyword[args.k]["list_keywords"],
@@ -64,5 +75,10 @@ if __name__ == "__main__":
             json.dump(allProduct, f, ensure_ascii=False, indent=4)
         df = pd.DataFrame(allProduct)
         df.to_csv(f"{args.k}_data.csv", index=False)
+        elapsed_time = time.time() - start_time  # Calculate elapsed time
+        content_start = f"Execution Time for {args.k}: {elapsed_time} seconds"
+        send_webhook_message(webhook_url, content_start)
     else:
         print(f"No keywords found for {args.k}")
+        content_start = f"No keywords found for {args.k}"
+        send_webhook_message(webhook_url, content_start)

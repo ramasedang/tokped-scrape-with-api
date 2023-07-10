@@ -26,14 +26,13 @@ def random_user_agent():
     return user_agents[random_index]
 
 
-def getCookies():
+def getCookies(max_retries=3):
     userAgents = random_user_agent()
     headers = {
         "authority": "www.tokopedia.com",
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
         "accept-language": "en-US,en;q=0.6",
         "cache-control": "max-age=0",
-        "sec-ch-ua": '"Not.A/Brand";v="8", "Chromium";v="114", "Brave";v="114"',
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "document",
@@ -45,11 +44,21 @@ def getCookies():
         "user-agent": userAgents,
     }
 
-    response = requests.get("https://www.tokopedia.com/", headers=headers)
-    # save cookies
-    cookies = response.cookies
-    # print(cookies)
-    return cookies
+    retries = 0
+    while retries < max_retries:
+        try:
+            response = requests.get(
+                "https://www.tokopedia.com/", headers=headers, timeout=5
+            )
+            cookies = response.cookies
+            return cookies
+        except ConnectionError as e:
+            print(f"Connection error occurred: {e}")
+            print(f"Retrying ({retries + 1}/{max_retries})...")
+            retries += 1
+
+    print("Max retries exceeded. Unable to establish a connection.")
+    return None
 
 
 def getListProduct(keyword, page):
@@ -59,7 +68,6 @@ def getListProduct(keyword, page):
         start = (int(page) - 1) * 200
 
     headers = {
-        "sec-ch-ua": '"Not.A/Brand";v="8", "Chromium";v="114", "Brave";v="114"',
         "Tkpd-UserId": "10731773",
         "X-Version": "6730998",
         "sec-ch-ua-mobile": "?0",
@@ -84,18 +92,68 @@ def getListProduct(keyword, page):
     ]
     cookies = getCookies()
 
-    response = requests.post(
+    response = post_request_with_retry2(
         "https://gql.tokopedia.com/graphql/SearchProductQueryV4",
         headers=headers,
-        json=json_data,
-        cookies=cookies,
+        payload=json_data,
+        cookieJar=cookies,
     )
 
-    json_str = json.dumps(response.json())
+    json_str = json.dumps(response)
     data = json.loads(json_str)
     data = data[0]
     # print(data)
     return data
+
+
+def post_request_with_retry2(url, headers, payload, cookieJar):
+    cookies = cookieJar
+    for i in range(4):
+        session = requests.Session()
+        try:
+            time.sleep(random.randint(1, 2))
+            response = session.post(
+                url, headers=headers, json=payload, timeout=3, cookies=cookies
+            )
+            response.raise_for_status()
+            return json.loads(response.text)
+        except (requests.exceptions.Timeout, requests.exceptions.HTTPError):
+            print(f"Timeout on attempt {i+1}")
+            cookies = getCookies()
+            time.sleep(2)  # Wait for 5 seconds before retrying
+            print(f"Retrying attempt {i+1}...")
+        except Exception as e:
+            print("An error occurred:", e)
+            break
+        finally:
+            session.close()
+    print("Failed to get detail product after 5 retries.")
+    return None
+
+
+def post_request_with_retry(url, headers, payload, productKey, cookieJar):
+    cookies = cookieJar
+    for i in range(5):
+        session = requests.Session()
+        try:
+            time.sleep(random.randint(1, 2))
+            response = session.post(
+                url, headers=headers, data=payload, timeout=3, cookies=cookies
+            )
+            response.raise_for_status()
+            return json.loads(response.text)
+        except (requests.exceptions.Timeout, requests.exceptions.HTTPError):
+            print(f"Timeout on attempt {i+1}: {productKey}")
+            cookies = getCookies()
+            time.sleep(2)  # Wait for 5 seconds before retrying
+            print(f"Retrying attempt {i+1}...")
+        except Exception as e:
+            print("An error occurred:", e)
+            break
+        finally:
+            session.close()
+    print("Failed to get detail product after 5 retries.")
+    return None
 
 
 def commonGet(url):
@@ -119,8 +177,9 @@ def getCategory():
             }
         ]
     )
+
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0",
+        "User-Agent": random_user_agent(),
         "Accept": "*/*",
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br",
@@ -132,7 +191,6 @@ def getCategory():
         "X-Source": "tokopedia-lite",
         "Origin": "https://www.tokopedia.com",
         "Connection": "keep-alive",
-        "Cookie": "_UUID_NONLOGIN_=197e744d0985e2c43232c573e1f2cd5e; _UUID_NONLOGIN_.sig=9HCUb4ew0QYMmyWhY746XnbKqpY; _abck=0363AD95E766EA080E1642F0D2483F65~0~YAAQHepbJK+OlQCJAQAAZTaeEQpn4c5gu3oWT/g2hgYu6/e/493pvGPE9TqDeZ56CyAB4evuUHsea2LZmRElT2Dy1voK7B6qa0Vnan4WCoZhEzwdswctOqmhvOz2SzN1FbTXM4wPbvUmtrvKsqIsoOeVQFTYGzitacROHphR3avEXjxpT4xheQ+rWrqw1lJZoLESnpyIOag2yNgCxivLo2BEwxTUUR9Ko65MQvZCUR3TU/aIppzP35f3hAxMg0kafV/FIlgWsxD38d6wFN97dV8uRmjS4RQYoHQFO0HNgZKW4sfMBwOJdspAybDfHfnMXPShH8LSQ80aNC/T8Xe494zcYm3tJcHd0B4jhiQRyjqPw+86lcHxArmV/e2kwHBVJwK/2Jmk5XoT5O8FWomUxESQLE2xqvOn8TXT6Q==~-1~-1~-1; DID=d6839469bae1ab519838fc2403a9f589a09757228be8746b5329f60015122968879d1080b0448bb1ecb5c5346ae395e4; DID_JS=ZDY4Mzk0NjliYWUxYWI1MTk4MzhmYzI0MDNhOWY1ODlhMDk3NTcyMjhiZTg3NDZiNTMyOWY2MDAxNTEyMjk2ODg3OWQxMDgwYjA0NDhiYjFlY2I1YzUzNDZhZTM5NWU047DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=; _ga_70947XW48P=GS1.1.1688215799.18.1.1688217900.48.0.0; _ga=GA1.2.1242912554.1646675165; _UUID_CAS_=3fd08e4e-f65b-4359-8ed5-fc741e505428; _CASE_=2a73351835736b636366657d73301835736b617d733d333d736b731b303a30232530710124223025737d73321835736b6066677d733d3e3f36736b73737d733d3025736b73737d7321123e736b73737d73261835736b60636360616266647d73221835736b60606462616466622c; _jxx=61682130-1af4-11ed-82cc-d9794eebe228; _jx=61682130-1af4-11ed-82cc-d9794eebe228; _gcl_au=1.1.258457189.1688038084; ISID=%7B%22www.tokopedia.com%22%3A%22d3d3LnRva29wZWRpYS5jb20%3D.80dd723fcc79e4ae8a4a585613388f79.1688215799338.1688211267351.1688217846712.16%22%7D; _gid=GA1.2.1076252931.1688038085; hfv_banner=true; _SID_Tokopedia_=BriEayCRG86E_xhSP8VcNbFRoLb-K8KomixnzlKo5Q0L14-O7VyhC_PTO0WByfThB4GS2VFss8xfgOw-LAWWYy174fsoqy57d-uh5IgofvRxtETNfLkeXQ-uI_MOKzFY; bm_sz=DE733BA0CF6ACBE1595B34DD66B034BA~YAAQPOpbJMOZK96IAQAAIsj9EBT3X/2SixhAKO6BTlG1+D/uyEdKXAirBjqtWv5S87h0jR/TZQV/J2EF9vl5DQIitN+OBNs4uIzUM7Pp53S/fdLJBvVVgClPTzqk5GKyZ8A8Efw7UOjygP9G7/1opDghBeVF/VgJmDJpjmAREhaNY/hplRp82OtmXmDgNp2NZLutntr/vVfXcNENiISG6LdqqKQCdYlrVSwnTjJ+0O0wVz3+NI98ZOaduPzJBeeaKxrW8B82ojKls2kDVvdJNBcDsDq2JMxLBtTMfYyuMLUQQcKXukU=~4338739~3160113; ak_bmsc=3CCB7C7E63BF8099EF009569B4A76C79~000000000000000000000000000000~YAAQHepbJC47lQCJAQAAZcqAERQeXBnXMQrl/U19YaReYmXF51wdMz7K39VI0eMIt691duuQ4Fkzr1spxCDjZ0I5+X1v80jBwFyepu2bwg9m5ajA0t6AfqXJzioXK7oYStsEC+rvX3kzF/lrpsOZIK4k0yUTWbHwFnOXzd8aEAjrTNKxu49vTSoX2RpEWYmVHUO8N4voVOpH46xhhR707vD9RakNbpVSEj7HtMXVO5fvTK1crsYRdQBEpL4QtcJFfO8oMJZNHdJHVH9e+ovXAN+RJgC+mErBokAFfBZbki6uszfFHXIE60x7gv019Ul9sDJeTmTWq8xHD7LsyvkFHlKnhmBWar+/JodmF+OAXJgTi5EJUPPcO9CE5ecUQDuspKeCShFSYDm1Lv4mN1Vd2pJz1owvJCS9Qa3Em/m5Rbyhx6BMchAX4CE8NN0xaKWcV6X8ANpmdD4mMR5vzy/DPUDqdt8Aoafxns4RGF2ltCPqYAx91Dvw4A0TxlftxA==; _dc_gtm_UA-9801603-1=1; _UUID_NONLOGIN_=eb96736ee668c5efbbf43164ac3878f7; _UUID_NONLOGIN_.sig=Bm5rvY5E_nxLhf6zDiuE04j0AGU; _abck=0363AD95E766EA080E1642F0D2483F65~-1~YAAQrVN9cgv3khqJAQAA4gYRJQrr7E2W8hVMaWnDoqwY7oNVXKq873vsYsSeYSo5PEHUcSCeRD7hbLMA3VHdKIpUObwUwthDZzVDUME1FC42W8LF/JAPzxo+/yeses/Up8+FQ04RTy3/oQPn1zrGErv7sV81LutO35eCdwPZQMtcSw4CodcOsZmlV5QjkX2fTy4gy7mP+xlBvtNlpCuw7MRKxl1R+9W5cfeyTI9sSCCTf5tnhfmh5q94Gj//aFYPaiHYrmhNbFxPRlgXg26mUbgThr87gPACoVaemeCR80FPcSr4jByDOQqpQd3WAZ+r7qJ4WrY2eDLmI7w8VUKJpE2ppZgKcfi8xbv9MvouQqrlBY30tGqoYu5fscpVQWgG4uE=~0~-1~-1",
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-site",
@@ -141,7 +199,25 @@ def getCategory():
         "TE": "trailers",
     }
 
-    response = requests.request("POST", url, headers=headers, data=payload)
+    retries = 3  # Number of retries
+    timeout = 5  # Request timeout in seconds
+
+    for attempt in range(retries):
+        try:
+            response = requests.post(
+                url, headers=headers, data=payload, timeout=timeout
+            )
+            response.raise_for_status()
+            break  # Successful request, exit the loop
+        except requests.exceptions.RequestException:
+            if attempt < retries - 1:
+                # Sleep for 1 second before retrying
+                time.sleep(1)
+                continue
+            else:
+                # Handle the case when all retries fail
+                print("Failed to retrieve data after multiple attempts.")
+                return None
 
     resjson = json.dumps(response.json(), indent=4, ensure_ascii=False)
     # get first array index
@@ -224,7 +300,6 @@ def getListProductCat(cat_lvl3_id, page):
         ]
     )
     headers = {
-        "sec-ch-ua": '"Not.A/Brand";v="8", "Chromium";v="114", "Brave";v="114"',
         "Tkpd-UserId": "0",
         "X-Version": "1423eab",
         "sec-ch-ua-mobile": "?0",
@@ -239,40 +314,9 @@ def getListProductCat(cat_lvl3_id, page):
         "sec-ch-ua-platform": '"Windows"',
     }
 
-    response = requests.request(
-        "POST", url, headers=headers, data=payload, cookies=cookie
-    )
+    response = post_request_with_retry(url, headers, payload, cat_lvl3_id, cookie)
 
-    response_data = response.json()
-
-    return response_data[0]
-
-
-def post_request_with_retry(url, headers, payload, productKey, cookieJar):
-    ccokies = cookieJar
-    for i in range(5):
-        session = requests.Session()
-        try:
-            time.sleep(random.randint(3, 6))
-            response = session.post(
-                url, headers=headers, data=payload, timeout=5, cookies=ccokies
-            )
-            response.raise_for_status()
-            #
-            return json.loads(response.text)
-        except (requests.exceptions.Timeout, requests.exceptions.HTTPError):
-            print(f"Timeout on attempt {i+1} :" + productKey)
-
-            ccokies = getCookies()
-            time.sleep(4)  # Wait for 5 seconds before retrying
-            print(f"Retrying attempt {i+1}... ")
-        except Exception as e:
-            print("An error occurred:", e)
-            break
-        finally:
-            session.close()
-    print("Failed to get detail product after 5 retries.")
-    return None
+    return response[0]
 
 
 if __name__ == "__main__":

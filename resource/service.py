@@ -78,10 +78,18 @@ def addAdditionalData(data, keyword, product):
         store_name = _product["shop"]["name"]
         store_link = _product["shop"]["url"]
 
-        if store_type == "true":
-            store_type = 1
+        if (
+            store_type == "true"
+            or store_type == True
+            or store_type == 1
+            or store_type == "1"
+            or store_type == "True"
+            or store_type == "TRUE"
+        ):
+            store_type = True
         else:
-            store_type = 0
+            # set store type to numeric 0
+            store_type = False
         data["cat_slug"] = keyword
         data["store_type"] = store_type
         data["datescrap"] = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -91,8 +99,7 @@ def addAdditionalData(data, keyword, product):
 
         return data
     except TypeError:
-        # If a TypeError occurs (NoneType object is not subscriptable),
-        # just return None
+        print("Error")
         return None
 
 
@@ -100,7 +107,6 @@ def processProduct(product, keyword):
     processed_data = proccessData(product)
     # print(processed_data)
 
-    # If proccessData returns None, return None
     if processed_data is None:
         return None
 
@@ -121,7 +127,7 @@ def getLstProduct(keyword, datatable):
             print("No product found for keyword:", keyword)
             print(lst["header"]["totalData"])
             stopPage = True
-        with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=60) as executor:
             result = list(
                 executor.map(
                     processProduct,
@@ -130,12 +136,12 @@ def getLstProduct(keyword, datatable):
                 )
             )
         allProduct += [product for product in result if product is not None]
-        # Filter out the None values
-        insert_rows_wit_convert(result, datatable)
-
+        # filter result if not None
+        result = [product for product in result if product is not None]
         if not stopPage:  # Only increase the page if we have not reached the last page
             page += 1
             print("Page:" + str(page) + "done")
+            insert_rows_no_convert(result, datatable)
 
         # filter if itemid null or "" or None
         allProduct = [
@@ -146,17 +152,13 @@ def getLstProduct(keyword, datatable):
     return allProduct
 
 
-import concurrent.futures
-
-
 def getCat(cat, list_cat, datatable):
     url_to_scrap = []
     catList = getCategory()
     catList = json.dumps(catList)
     catList = json.loads(catList)
     allResult = []
-    page = 1
-    stopPage = False
+
     df = pd.read_csv("mapping/catmapping.csv")
     filtered_df = df[df[cat].isin(list_cat)].copy()
 
@@ -172,6 +174,7 @@ def getCat(cat, list_cat, datatable):
                         for cat_lvl3 in cat_lvl2["children"]:
                             if cat_lvl3["id"] == level_3_id:
                                 obj = {
+                                    # cat slug cat_lvl1["name"]+"-"+cat_lvl2["name"]+"-"+cat_lvl3["name"]
                                     "cat_slug": cat_lvl1["name"]
                                     + "-"
                                     + cat_lvl2["name"]
@@ -183,47 +186,47 @@ def getCat(cat, list_cat, datatable):
                                 url_to_scrap.append(obj)
     print("Total url to scrap:", len(url_to_scrap))
 
-    def process_page(page_num):
-        detail = getListProductCat(url_to_scrap[page_num]["cat_lvl3_id"], page_num)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        executor.map(
+            process_url,
+            url_to_scrap,
+            [allResult] * len(url_to_scrap),
+            [datatable] * len(url_to_scrap),
+        )
+
+    return allResult
+
+
+def process_url(url, allResult, datatable):
+    print("Url to scrap:", url["url"])
+    page = 1
+    stopPage = False
+    while not stopPage:
+        print("All result:", len(allResult))
+        detail = getListProductCat(url["cat_lvl3_id"], page)
         if detail["data"]["CategoryProducts"]["count"] == 0:
-            print("No product found for category:", url_to_scrap[page_num]["cat_slug"])
+            print("No product found for category:", url["cat_slug"])
             print(detail["data"]["CategoryProducts"]["count"])
-            return None
+            stopPage = True
+        # save detail to json
         product = json.dumps(detail)
         product = json.loads(product)
         product = product["data"]["CategoryProducts"]["data"]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
-            result = list(
-                executor.map(
-                    processProduct,
-                    product,
-                    [url_to_scrap[page_num]["cat_slug"]] * len(product),
-                )
+        result = []
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=60) as executor:
+            processed_products = list(
+                executor.map(processProduct, product, [url["cat_slug"]] * len(product))
             )
-        return [product for product in result if product is not None]
+            result += [p for p in processed_products if p is not None]
 
-    while not stopPage:
-        pages_to_process = [page, page + 1]  # Process two pages simultaneously
-        results = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            results = list(executor.map(process_page, pages_to_process))
-
-        for page_result in results:
-            if page_result is None:
-                stopPage = True
-                break
-            # insert_rows_no_convert(page_result, datatable)
-            allResult += page_result
-
-        print("Pages:", pages_to_process, "done")
-
+        allResult += [p for p in result if p is not None]
+        print("Page:" + str(page) + " done")
         if not stopPage:
-            page += 2
+            page += 1
+            insert_rows_no_convert(result, datatable)
 
+        # filter if itemid null or "" or None
         allResult = [
-            product
-            for product in allResult
-            if product["itemid"] is not None and product["itemid"] != ""
+            p for p in allResult if p["itemid"] is not None and p["itemid"] != ""
         ]
-
-    return allResult

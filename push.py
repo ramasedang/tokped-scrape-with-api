@@ -31,6 +31,7 @@ def insert_rows_wit_convert(rows, datatable):
 
 
 def insert_rows_no_convert(rows, datatable):
+    print("Panjang data: " + str(len(rows)))
     print("Data insert to " + datatable)
     if not isinstance(rows, (list, tuple)) or not all(
         isinstance(row, dict) for row in rows
@@ -40,9 +41,34 @@ def insert_rows_no_convert(rows, datatable):
     table_id = f"profound-surge-368421.{datatable}.digitalocean"
     errors = client.insert_rows_json(table_id, rows)  # Make an API request
     if errors == []:
-        print("New rows have been added")
+        print("New rows have been added before conversion")
     else:
-        print("Encountered errors while inserting rows: {}".format(errors))
+        print("Attempting to convert store_type to int and retrying...")
+
+        # Convert store_type to int
+        convert_store_type_to_int(rows)
+
+        # Retry the insertion
+        errors = client.insert_rows_json(table_id, rows)  # Make another API request
+        if errors == []:
+            print("New rows have been added after conversion")
+        else:
+            print("Encountered errors while inserting rows")
+
+
+def convert_store_type_to_int(data):
+    for item in data:
+        store_type = item.get("store_type")
+        # cange to int 0 or 1
+        int1 = 1
+        int0 = 0
+
+        if item.get("store_type") == True:
+            item["store_type"] = int1
+        elif item.get("store_type") == False:
+            item["store_type"] = int0
+
+    return data
 
 
 def batch_insert_rows(rows):
@@ -56,21 +82,6 @@ def batch_insert_rows(rows):
 def read_json_file(file_path):
     with open(file_path, "r") as file:
         data = json.load(file)
-    return data
-
-
-def convert_store_type_to_int(data):
-    for item in data:
-        store_type = item.get("store_type")
-        if isinstance(store_type, str):
-            if store_type.lower() == "true":
-                item["store_type"] = True
-            elif store_type.lower() == "false":
-                item["store_type"] = False
-            elif store_type == "0":
-                item["store_type"] = 0  # Convert "0" to integer
-        if not isinstance(item["store_type"], (bool, int)):
-            item["store_type"] = 1 if item["store_type"] else 0
     return data
 
 
