@@ -2,7 +2,7 @@ from google.cloud import bigquery
 import os
 import json
 
-data_name = "others"
+data_name = "beauty"
 table_name = "digitalocean"
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -31,29 +31,32 @@ def insert_rows_wit_convert(rows, datatable):
 
 
 def insert_rows_no_convert(rows, datatable):
-    print("Panjang data: " + str(len(rows)))
-    print("Data insert to " + datatable)
-    if not isinstance(rows, (list, tuple)) or not all(
-        isinstance(row, dict) for row in rows
-    ):
-        raise TypeError("rows argument should be a sequence of dicts")
+    if len(rows) != 0:
+        print("Panjang data: " + str(len(rows)))
+        print("Data insert to " + datatable)
+        if not isinstance(rows, (list, tuple)) or not all(
+            isinstance(row, dict) for row in rows
+        ):
+            raise TypeError("rows argument should be a sequence of dicts")
 
-    table_id = f"profound-surge-368421.{datatable}.digitalocean"
-    errors = client.insert_rows_json(table_id, rows)  # Make an API request
-    if errors == []:
-        print("New rows have been added before conversion")
-    else:
-        print("Attempting to convert store_type to int and retrying...")
-
-        # Convert store_type to int
-        convert_store_type_to_int(rows)
-
-        # Retry the insertion
-        errors = client.insert_rows_json(table_id, rows)  # Make another API request
+        table_id = f"profound-surge-368421.{datatable}.digitalocean"
+        errors = client.insert_rows_json(table_id, rows)  # Make an API request
         if errors == []:
-            print("New rows have been added after conversion")
+            print("New rows have been added before conversion")
         else:
-            print("Encountered errors while inserting rows")
+            print("Attempting to convert store_type to int and retrying...")
+
+            # Convert store_type to int
+            convert_store_type_to_int(rows)
+
+            # Retry the insertion
+            errors = client.insert_rows_json(table_id, rows)  # Make another API request
+            if errors == []:
+                print("New rows have been added after conversion")
+            else:
+                print("Encountered errors while inserting rows")
+    else:
+        print("No data to insert")
 
 
 def convert_store_type_to_int(data):

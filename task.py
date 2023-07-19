@@ -49,7 +49,19 @@ byKeyword = {
             "Minuman Rendah Kalori",
         ],
     },
+    "lions": {
+        "datatable": "wings_group",
+        "name": "lions",
+        "list_keywords": [
+            "Zinc shampoo",
+            "shampoo emeron",
+            "shampoo serasoft",
+            "Emeron Body Lotion",
+            "Emeron Lovely Body Lotion",
+        ],
+    },
 }
+
 
 byCategory = {
     "quotidien_salad": {
@@ -89,5 +101,29 @@ byCategory = {
         "name": "blueband",
         "cat": "cat3",
         "lis_category": ["Mentega & Butter", "Topping & Penghias Kue"],
+    },
+    "lions": {
+        "datatable": "wings_group",
+        "name": "lions",
+        "cat": "cat3",
+        "lis_category": [
+            "Shampoo",
+            "Conditioner",
+            "Vitamin & Serum Rambut",
+            "Body Lotion",
+        ],
+    },
+    "wings": {
+        "datatable": "wings_group",
+        "name": "wings",
+        "cat": "cat3",
+        "lis_category": [
+            "Mie Instan",
+            "Kopi Bubuk",
+            "Kopi Instan",
+            "Kopi Kemasan",
+            "Kopi Literan",
+            "Popok Sekali Pakai",
+        ],
     },
 }

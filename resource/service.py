@@ -119,7 +119,6 @@ def getLstProduct(keyword, datatable):
     stopPage = False
     page = 1
     while not stopPage:
-        print("Getting page:", page)
         lst = json.dumps(getListProduct(keyword, page))
         lst = json.loads(lst)
         lst = lst["data"]["ace_search_product_v4"]
@@ -127,7 +126,7 @@ def getLstProduct(keyword, datatable):
             print("No product found for keyword:", keyword)
             print(lst["header"]["totalData"])
             stopPage = True
-        with concurrent.futures.ThreadPoolExecutor(max_workers=60) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
             result = list(
                 executor.map(
                     processProduct,
@@ -138,10 +137,11 @@ def getLstProduct(keyword, datatable):
         allProduct += [product for product in result if product is not None]
         # filter result if not None
         result = [product for product in result if product is not None]
+        print("Getting page:", page)
         if not stopPage:  # Only increase the page if we have not reached the last page
             page += 1
-            print("Page:" + str(page) + "done")
             insert_rows_no_convert(result, datatable)
+            print("Page:" + str(page) + "done")
 
         # filter if itemid null or "" or None
         allProduct = [
@@ -186,7 +186,7 @@ def getCat(cat, list_cat, datatable):
                                 url_to_scrap.append(obj)
     print("Total url to scrap:", len(url_to_scrap))
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
         executor.map(
             process_url,
             url_to_scrap,

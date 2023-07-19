@@ -11,6 +11,9 @@ from resource.utils import *
 import time
 
 
+from requests.exceptions import ConnectionError, ReadTimeout
+
+
 def random_user_agent():
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
@@ -26,7 +29,7 @@ def random_user_agent():
     return user_agents[random_index]
 
 
-def getCookies(max_retries=3):
+def getCookies(max_retries=10):
     userAgents = random_user_agent()
     headers = {
         "authority": "www.tokopedia.com",
@@ -48,12 +51,16 @@ def getCookies(max_retries=3):
     while retries < max_retries:
         try:
             response = requests.get(
-                "https://www.tokopedia.com/", headers=headers, timeout=5
-            )
+                "https://tokopedia.com/", headers=headers, timeout=30
+            )  # Increase the timeout value to 30 seconds
             cookies = response.cookies
             return cookies
         except ConnectionError as e:
             print(f"Connection error occurred: {e}")
+            print(f"Retrying ({retries + 1}/{max_retries})...")
+            retries += 1
+        except ReadTimeout as e:
+            print(f"Timeout error occurred: {e}")
             print(f"Retrying ({retries + 1}/{max_retries})...")
             retries += 1
 
@@ -65,7 +72,7 @@ def getListProduct(keyword, page):
     if int(page) == 1:
         start = 0
     else:
-        start = (int(page) - 1) * 200
+        start = (int(page) - 1) * 130
 
     headers = {
         "Tkpd-UserId": "10731773",
@@ -85,7 +92,7 @@ def getListProduct(keyword, page):
         {
             "operationName": "SearchProductQueryV4",
             "variables": {
-                "params": f"device=desktop&navsource=&ob=23&page=P{page}&q={quote(keyword)}&related=true&rows=200&safe_search=false&scheme=https&shipping=&show_adult=false&source=search&srp_component_id=02.01.00.00&srp_page_id=&srp_page_title=&st=product&start={start}&topads_bucket=true&unique_id=2a84016eeb7220f769135a8dee41e1b8&user_addressId=194047705&user_cityId=252&user_districtId=3534&user_id=10731773&user_lat=-7.294156364632453&user_long=112.80760947614907&user_postCode=60111&user_warehouseId=0&variants=&warehouses=0%232h%2C0%2315m"
+                "params": f"device=desktop&navsource=&ob=23&page=P{page}&q={quote(keyword)}&related=true&rows=130&safe_search=false&scheme=https&shipping=&show_adult=false&source=search&srp_component_id=02.01.00.00&srp_page_id=&srp_page_title=&st=product&start={start}&topads_bucket=true&unique_id=2a84016eeb7220f769135a8dee41e1b8&user_addressId=194047705&user_cityId=252&user_districtId=3534&user_id=10731773&user_lat=-7.294156364632453&user_long=112.80760947614907&user_postCode=60111&user_warehouseId=0&variants=&warehouses=0%232h%2C0%2315m"
             },
             "query": "query SearchProductQueryV4($params: String!) {\n  ace_search_product_v4(params: $params) {\n    header {\n      totalData\n      totalDataText\n      processTime\n      responseCode\n      errorMessage\n      additionalParams\n      keywordProcess\n      componentId\n      __typename\n    }\n    data {\n      banner {\n        position\n        text\n        imageUrl\n        url\n        componentId\n        trackingOption\n        __typename\n      }\n      backendFilters\n      isQuerySafe\n      ticker {\n        text\n        query\n        typeId\n        componentId\n        trackingOption\n        __typename\n      }\n      redirection {\n        redirectUrl\n        departmentId\n        __typename\n      }\n      related {\n        position\n        trackingOption\n        relatedKeyword\n        otherRelated {\n          keyword\n          url\n          product {\n            id\n            name\n            price\n            imageUrl\n            rating\n            countReview\n            url\n            priceStr\n            wishlist\n            shop {\n              city\n              isOfficial\n              isPowerBadge\n              __typename\n            }\n            ads {\n              adsId: id\n              productClickUrl\n              productWishlistUrl\n              shopClickUrl\n              productViewUrl\n              __typename\n            }\n            badges {\n              title\n              imageUrl\n              show\n              __typename\n            }\n            ratingAverage\n            labelGroups {\n              position\n              type\n              title\n              url\n              __typename\n            }\n            componentId\n            __typename\n          }\n          componentId\n          __typename\n        }\n        __typename\n      }\n      suggestion {\n        currentKeyword\n        suggestion\n        suggestionCount\n        instead\n        insteadCount\n        query\n        text\n        componentId\n        trackingOption\n        __typename\n      }\n      products {\n        id\n        name\n        ads {\n          adsId: id\n          productClickUrl\n          productWishlistUrl\n          productViewUrl\n          __typename\n        }\n        badges {\n          title\n          imageUrl\n          show\n          __typename\n        }\n        category: departmentId\n        categoryBreadcrumb\n        categoryId\n        categoryName\n        countReview\n        customVideoURL\n        discountPercentage\n        gaKey\n        imageUrl\n        labelGroups {\n          position\n          title\n          type\n          url\n          __typename\n        }\n        originalPrice\n        price\n        priceRange\n        rating\n        ratingAverage\n        shop {\n          shopId: id\n          name\n          url\n          city\n          isOfficial\n          isPowerBadge\n          __typename\n        }\n        url\n        wishlist\n        sourceEngine: source_engine\n        __typename\n      }\n      violation {\n        headerText\n        descriptionText\n        imageURL\n        ctaURL\n        ctaApplink\n        buttonText\n        buttonType\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
         }
@@ -111,7 +118,7 @@ def post_request_with_retry2(url, headers, payload, cookieJar):
     for i in range(4):
         session = requests.Session()
         try:
-            time.sleep(random.randint(1, 2))
+            time.sleep(random.randint(3, 4))
             response = session.post(
                 url, headers=headers, json=payload, timeout=3, cookies=cookies
             )
@@ -136,7 +143,7 @@ def post_request_with_retry(url, headers, payload, productKey, cookieJar):
     for i in range(5):
         session = requests.Session()
         try:
-            time.sleep(random.randint(1, 2))
+            time.sleep(random.randint(3, 4))
             response = session.post(
                 url, headers=headers, data=payload, timeout=3, cookies=cookies
             )
@@ -317,10 +324,3 @@ def getListProductCat(cat_lvl3_id, page):
     response = post_request_with_retry(url, headers, payload, cat_lvl3_id, cookie)
 
     return response[0]
-
-
-if __name__ == "__main__":
-    getDetailProduct(
-        "nutriologyindonesia",
-        "granola-real-honey-400-gr-nutriology-sereal-makanan-sehat-diet-praktis-apple-cinnamon",
-    )

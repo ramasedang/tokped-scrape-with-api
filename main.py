@@ -19,13 +19,11 @@ def work(keyword, datatable):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-k", type=str, help="Keyword argument")
-    # add argument -c
     parser.add_argument("-c", type=str, help="Category argument")
     args = parser.parse_args()
 
     if args.c == "all":
         for key in byCategory:
-            # msg start scraping to webhook
             content_start = f"Start scraping {key} category"
             send_webhook_message(webhook_url, content_start)
             cat_list = byCategory[key]["lis_category"]
@@ -39,38 +37,31 @@ if __name__ == "__main__":
 
     if args.k == "all":
         for key in byKeyword:
-            # msg start scraping to webhook
             content_start = f"Start scraping {key}"
             send_webhook_message(webhook_url, content_start)
 
             allProduct = []
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 results = executor.map(work, byKeyword[key]["list_keywords"])
-                allProduct += [
-                    item for sublist in results for item in sublist
-                ]  # Flatten list of lists
+                allProduct += [item for sublist in results for item in sublist]
             df = pd.DataFrame(allProduct)
             df.to_csv(f"{key}_data.csv", index=False)
             elapsed_time = time.time() - start_time  # Calculate elapsed time
             content_start = f"Execution Time for {key}: {elapsed_time} seconds"
             send_webhook_message(webhook_url, content_start)
     elif args.k in byKeyword:
-        # msg start scraping to webhook
         content_start = f"Start scraping {args.k}"
         send_webhook_message(webhook_url, content_start)
 
         allProduct = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             results = executor.map(
                 work,
                 byKeyword[args.k]["list_keywords"],
                 [byKeyword[args.k]["datatable"]]
                 * len(byKeyword[args.k]["list_keywords"]),
             )
-            allProduct += [
-                item for sublist in results for item in sublist
-            ]  # Flatten list of lists
-        # save as json
+            allProduct += [item for sublist in results for item in sublist]
         with io.open(f"{args.k}_data.json", "w", encoding="utf-8") as f:
             json.dump(allProduct, f, ensure_ascii=False, indent=4)
         df = pd.DataFrame(allProduct)
@@ -78,7 +69,19 @@ if __name__ == "__main__":
         elapsed_time = time.time() - start_time  # Calculate elapsed time
         content_start = f"Execution Time for {args.k}: {elapsed_time} seconds"
         send_webhook_message(webhook_url, content_start)
+    elif args.c in byCategory:  # Add this block
+        content_start = f"Start scraping {args.c} category"
+        send_webhook_message(webhook_url, content_start)
+
+        cat_list = byCategory[args.c]["lis_category"]
+        cat_name = byCategory[args.c]["cat"]
+        datatable = byCategory[args.c]["datatable"]
+        start_time = time.time()  # Start time
+        data = getCat(cat_name, cat_list, datatable)
+        elapsed_time = time.time() - start_time  # Calculate elapsed time
+        content_start = f"Scraping {args.c} category done total {len(data)} data\nElapsed Time: {elapsed_time} seconds"
+        send_webhook_message(webhook_url, content_start)
     else:
-        print(f"No keywords found for {args.k}")
-        content_start = f"No keywords found for {args.k}"
+        print(f"No keywords or categories found for {args.k} or {args.c}")
+        content_start = f"No keywords or categories found for {args.k} or {args.c}"
         send_webhook_message(webhook_url, content_start)
