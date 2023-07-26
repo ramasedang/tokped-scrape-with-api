@@ -119,10 +119,12 @@ def getLstProduct(keyword, datatable):
     stopPage = False
     page = 1
     while not stopPage:
+        print("Getting page:", page)
         lst = json.dumps(getListProduct(keyword, page))
         lst = json.loads(lst)
         lst = lst["data"]["ace_search_product_v4"]
-        if lst["header"]["totalData"] == 0:
+        print("Total product:", len(lst["data"]["products"]))
+        if len(lst["data"]["products"]) == 0:
             print("No product found for keyword:", keyword)
             print(lst["header"]["totalData"])
             stopPage = True
@@ -134,10 +136,11 @@ def getLstProduct(keyword, datatable):
                     [keyword] * len(lst["data"]["products"]),
                 )
             )
+        result = [product for product in result if product is not None]
         allProduct += [product for product in result if product is not None]
         # filter result if not None
-        result = [product for product in result if product is not None]
-        print("Getting page:", page)
+    
+        
         if not stopPage:  # Only increase the page if we have not reached the last page
             page += 1
             insert_rows_no_convert(result, datatable)

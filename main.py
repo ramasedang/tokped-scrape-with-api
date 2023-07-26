@@ -32,12 +32,16 @@ if __name__ == "__main__":
             start_time = time.time()  # Start time
             data = getCat(cat_name, cat_list, datatable)
             elapsed_time = time.time() - start_time  # Calculate elapsed time
-            content_start = f"Scraping {key} category done total {len(data)} data\nElapsed Time: {elapsed_time} seconds"
-            send_webhook_message(webhook_url, content_start)
+            elapsed_time = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+            # convert elapsed time to hh:mm:ss format and add date
+            
+            content_done = f"Scraping {key} category done\nElapsed Time: {elapsed_time} seconds"
+            send_webhook_message(webhook_url, content_done)
 
     if args.k == "all":
         for key in byKeyword:
             content_start = f"Start scraping {key}"
+            start_time = time.time()
             send_webhook_message(webhook_url, content_start)
 
             allProduct = []
@@ -47,12 +51,13 @@ if __name__ == "__main__":
             df = pd.DataFrame(allProduct)
             df.to_csv(f"{key}_data.csv", index=False)
             elapsed_time = time.time() - start_time  # Calculate elapsed time
-            content_start = f"Execution Time for {key}: {elapsed_time} seconds"
-            send_webhook_message(webhook_url, content_start)
+            elapsed_time = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+            content_done = f"Scraping {key} category done\nElapsed Time: {elapsed_time} seconds"
+            send_webhook_message(webhook_url, content_done)
     elif args.k in byKeyword:
         content_start = f"Start scraping {args.k}"
         send_webhook_message(webhook_url, content_start)
-
+        start_time = time.time()
         allProduct = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             results = executor.map(
@@ -67,8 +72,9 @@ if __name__ == "__main__":
         df = pd.DataFrame(allProduct)
         df.to_csv(f"{args.k}_data.csv", index=False)
         elapsed_time = time.time() - start_time  # Calculate elapsed time
-        content_start = f"Execution Time for {args.k}: {elapsed_time} seconds"
-        send_webhook_message(webhook_url, content_start)
+        elapsed_time = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+        content_done = f"Scraping {args.k} category done\nElapsed Time: {elapsed_time} seconds"
+        send_webhook_message(webhook_url, content_done)
     elif args.c in byCategory:  # Add this block
         content_start = f"Start scraping {args.c} category"
         send_webhook_message(webhook_url, content_start)
@@ -79,8 +85,9 @@ if __name__ == "__main__":
         start_time = time.time()  # Start time
         data = getCat(cat_name, cat_list, datatable)
         elapsed_time = time.time() - start_time  # Calculate elapsed time
-        content_start = f"Scraping {args.c} category done total {len(data)} data\nElapsed Time: {elapsed_time} seconds"
-        send_webhook_message(webhook_url, content_start)
+        elapsed_time = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+        content_done = f"Scraping {args.c} category done\nElapsed Time: {elapsed_time} seconds"
+        send_webhook_message(webhook_url, content_done)
     else:
         print(f"No keywords or categories found for {args.k} or {args.c}")
         content_start = f"No keywords or categories found for {args.k} or {args.c}"
