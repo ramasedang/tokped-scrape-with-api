@@ -4,9 +4,9 @@ import json
 
 data_name = "beauty"
 table_name = "digitalocean"
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f"{BASE_DIR}/key.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f"{BASE_DIR}/data/key.json"
 client = bigquery.Client()
 
 

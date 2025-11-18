@@ -1,11 +1,11 @@
 import io
 import pandas as pd
 from task import *
-from resource.utils import *
-from resource.allreq import *
+from src.utils import *
+from src.allreq import *
 import concurrent.futures
 import argparse
-from resource.service import *
+from src.service import *
 import time
 
 webhook_url = "https://discord.com/api/webhooks/1023818941715456035/g1gXRsu-0Oe3W6BVvNWJN3NP5ScHR9FKSAxPSR1Az1RWlJLDSAiFTxhA6DQQrtTtRHbK"

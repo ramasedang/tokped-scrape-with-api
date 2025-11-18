@@ -6,9 +6,9 @@ from datetime import datetime
 # shopee sender
 data_name   = 'pinkrabbit' 
 table_name  = 'digitalocean'
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = f"{BASE_DIR}/key.json"
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = f"{BASE_DIR}/data/key.json"
 client = bigquery.Client()
 table_id = f"profound-surge-368421.{data_name}.{table_name}"
 

@@ -7,7 +7,7 @@ import urllib
 import io
 import datetime
 import re
-from resource.utils import *
+from src.utils import *
 import time
 
 

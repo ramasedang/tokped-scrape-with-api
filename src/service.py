@@ -1,8 +1,8 @@
 import io
 import pandas as pd
 from task import *
-from resource.utils import *
-from resource.allreq import *
+from src.utils import *
+from src.allreq import *
 import concurrent.futures
 import argparse
 from push import *
